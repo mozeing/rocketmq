@@ -49,10 +49,29 @@ public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    /**
+     * 这个结构的Key是Topic的名称，它存储了所有Topic的属性信息。
+     * Value是个QueueData队列，队里的长度等于这个Topic数据存储的Master Broker的个数，QueueData里存储着Broker的名称、读写queue的数量、同步标识等。
+     */
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    /**
+     * 以BrokerName为索引，相同名称的Broker可能存在多台机器，一个Master和多个Slave。
+     * 这个结构存储着一个BrokerName对应的属性信息，包括所属的Cluster名称，一个Master Broker和多个Slave Broker的地址信息。
+     */
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    /**
+     * 存储的是集群中Cluster的信息，结果很简单，就是一个Cluster名称对应一个由BrokerName组成的集合。
+     */
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    /**
+     * 这个结构和BrokerAddrTable有关系，但是内容完全不同，这个结构的Key是BrokerAddr，也就是对应着一台机器，BrokerAddrTable中的Key是BrokerName，多个机器的BrokerName可以相同。
+     * BrokerLiveTable存储的内容是这台Broker机器的实时状态，包括上次更新状态的时间戳，NameServer会定期检查这个时间戳，超时没有更新就认为这个Broker无效了，将其从Broker列表里清除。
+     */
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    /**
+     * Filter Server是过滤服务器，是RocketMQ的一种服务端过滤方式，一个Broker可以有一个或多个Filter Server。
+     * 这个结构的Key是Broker的地址，Value是和这个Broker关联的多个FilterServer的地址。
+     */
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
